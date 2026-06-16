@@ -60,10 +60,30 @@ Screenshots are placeholders until captured — see [docs/screenshots.md](docs/s
   `.xcodeproj` is generated from `project.yml`
 - The Claude desktop app installed (for actual sending)
 
+## Install (download)
+
+1. Download the latest `ClaudeAutoPingMacos-vX.Y.Z.dmg` from the
+   [Releases page](https://github.com/shawon1fb/claude-auto-ping-macos/releases/latest).
+2. Open the DMG and drag **Claude Auto Ping** onto the **Applications** shortcut.
+3. Launch it from Applications.
+
+> **Unsigned build.** Release DMGs are not yet notarized, so macOS Gatekeeper
+> blocks the first launch ("Apple could not verify…" or "is damaged"). Bypass it
+> once, either way:
+>
+> - **Right-click** the app in Applications → **Open** → **Open**, or
+> - clear the quarantine flag from Terminal:
+>   ```bash
+>   xattr -dr com.apple.quarantine /Applications/ClaudeAutoPingMacos.app
+>   ```
+>
+> After the first launch macOS remembers the choice. The app is menu-bar only
+> (no Dock icon) — look for its icon in the menu bar.
+
 ## Installation from source
 
 ```bash
-git clone https://github.com/<your-org>/claude-auto-ping-macos.git
+git clone https://github.com/shawon1fb/claude-auto-ping-macos.git
 cd claude-auto-ping-macos
 
 # Generate the Xcode project from project.yml

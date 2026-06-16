@@ -22,6 +22,15 @@ public final class AccessibilityPermissionService: PermissionService {
         // prompting. macOS records a decision only after the first real attempt,
         // so an undetermined result maps to `.unknown`.
         let bundleID = "com.apple.systemevents"
+
+        // AEDeterminePermissionToAutomateTarget requires the target to be
+        // running; otherwise it returns procNotFound and logs noise on every
+        // call. System Events is a faceless app that quits when idle, so guard
+        // on it being running and treat "not running" as undetermined.
+        let isSystemEventsRunning = !NSRunningApplication
+            .runningApplications(withBundleIdentifier: bundleID).isEmpty
+        guard isSystemEventsRunning else { return .unknown }
+
         var target = AEAddressDesc()
         let createStatus = Data(bundleID.utf8).withUnsafeBytes { buffer in
             AECreateDesc(typeApplicationBundleID, buffer.baseAddress, buffer.count, &target)

@@ -17,6 +17,7 @@ public final class AppEnvironment {
     @ObservationIgnored private let launchAtLogin: LaunchAtLoginService
     @ObservationIgnored private let locator: ClaudeAppLocator
     @ObservationIgnored private let notifications: NotificationService
+    @ObservationIgnored private let scriptRunner: AppleScriptRunner
     @ObservationIgnored private let wakeObserver = WakeObserver()
     @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private let logger = Logger(subsystem: AppInfo.subsystem, category: "AppEnvironment")
@@ -29,9 +30,10 @@ public final class AppEnvironment {
     public init() {
         let settingsStore = UserDefaultsSettingsStore()
         let locator = DefaultClaudeAppLocator()
+        let scriptRunner = NSAppleScriptRunner()
         let automation = ClaudeAutomationService(
             controller: DefaultClaudeAppController(locator: locator),
-            scriptRunner: NSAppleScriptRunner(),
+            scriptRunner: scriptRunner,
             clipboard: DefaultClipboardManager()
         )
         let logStore = FileLogStore()
@@ -42,6 +44,7 @@ public final class AppEnvironment {
         self.logStore = logStore
         self.permission = permission
         self.notifications = notifications
+        self.scriptRunner = scriptRunner
         self.launchAtLogin = DefaultLaunchAtLoginService()
         self.scheduler = DefaultSchedulerService(
             settingsStore: settingsStore,
@@ -168,6 +171,30 @@ public final class AppEnvironment {
 
     public var automationStatus: PermissionStatus {
         permission.automationStatus()
+    }
+
+    /// Sends a harmless Apple event directly to System Events to trigger the
+    /// one-time Automation consent dialog and register the app in the Automation
+    /// list. Unlike a full dry-run, this does not depend on Claude being present
+    /// or Accessibility being granted, so it reliably surfaces the prompt. The
+    /// script actually launches System Events and sends an event, so its result
+    /// is the authoritative Automation status. Runs off the main actor because
+    /// the script call blocks while the dialog shows.
+    public func requestAutomationPrompt() async -> PermissionStatus {
+        let runner = scriptRunner
+        return await Task.detached {
+            do {
+                _ = try runner.run("tell application \"System Events\" to return name")
+                return .granted
+            } catch let error as AutomationError {
+                if case .automationPermissionDenied = error {
+                    return .denied
+                }
+                return .unknown
+            } catch {
+                return .unknown
+            }
+        }.value
     }
 
     /// Re-checks permissions and Claude discovery, updating the scheduler's

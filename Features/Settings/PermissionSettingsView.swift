@@ -65,10 +65,10 @@ struct PermissionSettingsView: View {
                 } label: {
                     HStack {
                         if isProbingAutomation { ProgressView().controlSize(.small) }
-                        Text("Trigger Automation prompt (dry-run)")
+                        Text("Request Automation access")
                     }
                 }
-                .help("Runs a dry-run that asks macOS for Automation access, adding the app to the Automation list.")
+                .help("Sends a System Events command so macOS shows the Automation prompt and lists the app under Automation.")
                 Button("Re-check permissions", action: refresh)
                 Button("Open Accessibility settings") {
                     actionMessage = environment.requestAccessibility()
@@ -95,7 +95,14 @@ struct PermissionSettingsView: View {
     private func refresh() {
         claudeFound = environment.locateClaude(preferredPath: config.claudeAppPath) != nil
         accessibilityGranted = environment.accessibilityGranted
-        automationStatus = environment.automationStatus
+        // Only adopt a definitive live reading. System Events often is not
+        // running, which reads as `.unknown`; in that case keep the last known
+        // result (for example, the authoritative result from the probe button)
+        // rather than flipping the row back to a question mark.
+        let live = environment.automationStatus
+        if live != .unknown {
+            automationStatus = live
+        }
         launchAtLoginEnabled = environment.isLaunchAtLoginEnabled
         // Keep the menu bar status in sync with the live permission state.
         environment.refreshPermissions()
@@ -123,11 +130,21 @@ struct PermissionSettingsView: View {
     private func triggerAutomationPrompt() {
         Task {
             isProbingAutomation = true
-            // A dry-run performs the automation steps (which require Automation
-            // access) without pressing Return, prompting macOS as a side effect.
-            await environment.scheduler.runDryTest()
+            // Send a direct Apple event to System Events. This surfaces the
+            // one-time Automation prompt and adds the app to the Automation list
+            // without depending on Claude or Accessibility. The returned status
+            // is authoritative, so adopt it directly.
+            let result = await environment.requestAutomationPrompt()
+            automationStatus = result
+            switch result {
+            case .granted:
+                actionMessage = "Automation access is allowed."
+            case .denied:
+                actionMessage = "Automation was denied. Enable Claude Auto Ping under System Events in Automation settings."
+            case .unknown:
+                actionMessage = "Approve the System Events prompt if it appeared, then re-check."
+            }
             isProbingAutomation = false
-            refresh()
         }
     }
 }

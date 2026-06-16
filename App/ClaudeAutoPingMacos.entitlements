@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  This utility performs local UI automation of the Claude desktop app via
+	  Apple Events / Accessibility. The App Sandbox is intentionally NOT enabled
+	  because sandbox restrictions are incompatible with controlling another app.
+	  The app is distributed outside the Mac App Store. See docs/permissions.md.
+	-->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
+</dict>
+</plist>

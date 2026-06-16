@@ -1,0 +1,84 @@
+name: Bug report
+description: Report a problem with Claude Auto Ping macOS
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. **Do not include credentials, tokens, or
+        private conversation content.** Logs from this app never contain your
+        message text and are safe to paste.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the problem and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set interval to ...
+        2. Click ...
+        3. See ...
+    validations:
+      required: true
+
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: "e.g. 14.5"
+    validations:
+      required: true
+
+  - type: input
+    id: claude-version
+    attributes:
+      label: Claude app version
+      placeholder: "e.g. 0.x.x (Claude > About)"
+    validations:
+      required: true
+
+  - type: input
+    id: app-version
+    attributes:
+      label: Claude Auto Ping version
+      placeholder: "e.g. 0.1.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: permissions
+    attributes:
+      label: Permission status
+      description: Which permissions are granted?
+      multiple: true
+      options:
+        - Accessibility granted
+        - Automation granted
+        - Claude app detected
+        - Launch at login enabled
+    validations:
+      required: true
+
+  - type: dropdown
+    id: ui-changed
+    attributes:
+      label: Did the Claude UI recently change?
+      options:
+        - "No / not sure"
+        - "Yes — Claude updated recently"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs (sanitized)
+      description: Settings → Logs → Copy selected. These contain no message text.
+      render: text

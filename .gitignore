@@ -1,0 +1,24 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# Generated Xcode project (regenerate with `xcodegen generate`)
+ClaudeAutoPingMacos.xcodeproj/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Release artifacts
+*.dmg
+*.zip
+
+# Logs and local config
+*.log

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.opensource.claudeautopingmacos</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/bin/osascript</string>
+		<string>__SCRIPT_PATH__</string>
+		<string>__MESSAGE__</string>
+		<string>__APP_NAME__</string>
+		<string>__RETURN_MODE__</string>
+	</array>
+
+	<!-- Run every N seconds. Default 18000 = 5 hours; the installer rewrites
+	     this value. It is a valid integer here so the template lints cleanly. -->
+	<key>StartInterval</key>
+	<integer>18000</integer>
+
+	<!-- Do not run immediately at load; wait for the first interval. -->
+	<key>RunAtLoad</key>
+	<false/>
+
+	<key>StandardOutPath</key>
+	<string>__LOG_DIR__/stdout.log</string>
+	<key>StandardErrorPath</key>
+	<string>__LOG_DIR__/stderr.log</string>
+
+	<key>ProcessType</key>
+	<string>Background</string>
+</dict>
+</plist>

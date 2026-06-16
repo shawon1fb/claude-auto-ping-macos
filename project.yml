@@ -1,0 +1,61 @@
+name: ClaudeAutoPingMacos
+options:
+  bundleIdPrefix: com.opensource
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_STRICT_CONCURRENCY: complete
+
+targets:
+  ClaudeAutoPingMacos:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+      - path: Features
+      - path: Domain
+      - path: Infrastructure
+      - path: Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.opensource.claudeautopingmacos
+        PRODUCT_NAME: ClaudeAutoPingMacos
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/ClaudeAutoPingMacos.entitlements
+        GENERATE_INFOPLIST_FILE: NO
+        COMBINE_HIDPI_IMAGES: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+
+  ClaudeAutoPingMacosTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: ClaudeAutoPingMacos
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.opensource.claudeautopingmacos.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  ClaudeAutoPingMacos:
+    build:
+      targets:
+        ClaudeAutoPingMacos: all
+        ClaudeAutoPingMacosTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - ClaudeAutoPingMacosTests

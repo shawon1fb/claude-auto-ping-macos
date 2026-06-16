@@ -3,27 +3,18 @@ import XCTest
 
 @MainActor
 final class SchedulerServiceTests: XCTestCase {
-    private var clock: MockClock!
-    private var settings: MockSettingsStore!
-    private var automation: MockAutomationService!
-    private var logStore: MockLogStore!
-    private var permission: MockPermissionService!
-    private var notifications: MockNotificationService!
-    private var systemState: MockSystemStateProvider!
-    private var ticker: MockSchedulerTicker!
+    // Initialized inline: XCTest creates a fresh test-case instance per test
+    // method, so each test gets its own mocks. This also keeps initialization
+    // on the @MainActor (the overridable `setUp()` is nonisolated under Swift 6).
+    private var clock = MockClock()
+    private var settings = MockSettingsStore()
+    private var automation = MockAutomationService()
+    private var logStore = MockLogStore()
+    private var permission = MockPermissionService()
+    private var notifications = MockNotificationService()
+    private var systemState = MockSystemStateProvider()
+    private var ticker = MockSchedulerTicker()
     private let fiveHours: TimeInterval = 5 * 60 * 60
-
-    override func setUp() {
-        super.setUp()
-        clock = MockClock()
-        settings = MockSettingsStore()
-        automation = MockAutomationService()
-        logStore = MockLogStore()
-        permission = MockPermissionService()
-        notifications = MockNotificationService()
-        systemState = MockSystemStateProvider()
-        ticker = MockSchedulerTicker()
-    }
 
     private func makeScheduler(
         configuration: SchedulerConfiguration = SchedulerConfiguration()

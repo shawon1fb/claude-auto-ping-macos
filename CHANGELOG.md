@@ -6,6 +6,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-16
+
+### Fixed
+- The Settings window now comes to the front when opened from the menu bar.
+  Previously, as a menu-bar (`.accessory`) app, it could open behind other apps'
+  windows.
+
 ### Added
 - Reset-window scheduling (default on): set Claude's 5-hour reset time and the
   next message lands at that time and every interval after. Anchored, tolerant
@@ -53,5 +60,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Unit tests for the calculator, scheduler, settings store, and automation.
 - GitHub Actions build workflow and a tagged-release workflow template.
 
-[Unreleased]: https://github.com/<your-org>/claude-auto-ping-macos/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/<your-org>/claude-auto-ping-macos/releases/tag/v0.1.0
+[Unreleased]: https://github.com/shawon1fb/claude-auto-ping-macos/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/shawon1fb/claude-auto-ping-macos/compare/v0.1.0...v0.1.1
+[0.1.0]: https://github.com/shawon1fb/claude-auto-ping-macos/releases/tag/v0.1.0

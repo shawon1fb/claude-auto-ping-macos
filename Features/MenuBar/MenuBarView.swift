@@ -136,11 +136,26 @@ struct MenuBarView: View {
 
     private var footer: some View {
         HStack {
-            Button("Settings…") { openSettings() }
+            Button("Settings…") { showSettings() }
                 .help("Open settings.")
             Spacer()
             Button("Quit") { NSApplication.shared.terminate(nil) }
                 .help("Quit Claude Auto Ping.")
+        }
+    }
+
+    /// Opens the Settings window and brings it to the front. As a menu-bar
+    /// (`.accessory`) app we don't auto-activate, so a freshly opened Settings
+    /// window appears behind other apps unless we activate and order it front.
+    private func showSettings() {
+        openSettings()
+        // The window isn't in `NSApp.windows` until the next runloop tick.
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            let settingsWindow = NSApp.windows.first { window in
+                window.identifier?.rawValue.contains("Settings") == true
+            }
+            settingsWindow?.makeKeyAndOrderFront(nil)
         }
     }
 }

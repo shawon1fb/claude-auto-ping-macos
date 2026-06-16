@@ -46,6 +46,43 @@ public final class MenuBarViewModel {
         return "No runs yet"
     }
 
+    // MARK: Reset window
+
+    public var anchorToResetTime: Bool { scheduler.configuration.anchorToResetTime }
+
+    public var resetTime: Date {
+        scheduler.configuration.resetAnchorDate ?? Self.defaultResetTime()
+    }
+
+    public var hasResetTime: Bool {
+        scheduler.configuration.resetAnchorDate != nil
+    }
+
+    public func setAnchorToResetTime(_ enabled: Bool) {
+        var config = scheduler.configuration
+        config.anchorToResetTime = enabled
+        if enabled, config.resetAnchorDate == nil {
+            config.resetAnchorDate = Self.defaultResetTime()
+        }
+        scheduler.updateConfiguration(config)
+    }
+
+    public func setResetTime(_ date: Date) {
+        var config = scheduler.configuration
+        config.resetAnchorDate = date
+        config.anchorToResetTime = true
+        scheduler.updateConfiguration(config)
+    }
+
+    /// The next top of the hour, used as a sensible default reset time.
+    public static func defaultResetTime() -> Date {
+        Calendar.current.nextDate(
+            after: Date(),
+            matching: DateComponents(minute: 0),
+            matchingPolicy: .nextTime
+        ) ?? Date()
+    }
+
     public var canPause: Bool { scheduler.status.isActive }
     public var canResume: Bool {
         if case .running = scheduler.status { return false }

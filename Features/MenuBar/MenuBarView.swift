@@ -24,6 +24,10 @@ struct MenuBarView: View {
 
             Divider()
 
+            resetControl
+
+            Divider()
+
             actions
 
             Text("Recent result")
@@ -46,6 +50,50 @@ struct MenuBarView: View {
             LabeledRow(label: "Interval", value: viewModel.intervalText)
             LabeledRow(label: "Message", value: viewModel.messagePreview)
         }
+    }
+
+    private var resetControl: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle(isOn: anchorBinding) {
+                Text("Send at Claude's reset time")
+                    .font(.callout)
+            }
+            .toggleStyle(.switch)
+            .controlSize(.small)
+            .help("Schedule each message at your Claude 5-hour reset time.")
+
+            if viewModel.anchorToResetTime {
+                HStack {
+                    Text("Reset time")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    DatePicker("", selection: resetBinding, displayedComponents: .hourAndMinute)
+                        .labelsHidden()
+                        .datePickerStyle(.stepperField)
+                        .accessibilityLabel("Claude reset time")
+                }
+                if !viewModel.hasResetTime {
+                    Text("Pick the time your limit resets to anchor the schedule.")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                }
+            }
+        }
+    }
+
+    private var anchorBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.anchorToResetTime },
+            set: { viewModel.setAnchorToResetTime($0) }
+        )
+    }
+
+    private var resetBinding: Binding<Date> {
+        Binding(
+            get: { viewModel.resetTime },
+            set: { viewModel.setResetTime($0) }
+        )
     }
 
     @ViewBuilder

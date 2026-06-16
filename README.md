@@ -174,11 +174,24 @@ handy after rebuilding or when permissions get into a confusing state.
 
 ## Uninstallation
 
-- **App:** Settings → Advanced → "Uninstall background components" (disables login
-  item and stops the scheduler), then drag the app to the Trash. For a full
-  privacy/state wipe, run `./Scripts/cold-start-reset.sh` first.
-- **Standalone:** `./Scripts/uninstall-launch-agent.sh` (add `--remove-logs` to
-  also delete logs).
+`./Scripts/uninstall-launch-agent.sh` is a complete uninstaller. It quits the
+app, removes the standalone LaunchAgent and its script, **resets the app's macOS
+privacy permissions** (the TCC "permission cache" — Accessibility, Automation,
+Notifications), and clears saved settings. It runs in user space and never
+touches unrelated files.
+
+```bash
+./Scripts/uninstall-launch-agent.sh                 # full uninstall, keeps logs
+./Scripts/uninstall-launch-agent.sh --remove-logs   # also delete logs
+./Scripts/uninstall-launch-agent.sh --keep-permissions   # leave TCC grants
+./Scripts/uninstall-launch-agent.sh --remove-app /Applications/ClaudeAutoPingMacos.app
+```
+
+- **App-only quick cleanup:** Settings → Advanced → "Uninstall background
+  components" stops the scheduler and removes the login item. For a full
+  privacy/state wipe (including permissions), run the script above.
+- **Just reset, not uninstall:** `./Scripts/cold-start-reset.sh` returns the app
+  to a clean first-run state without removing the LaunchAgent.
 
 ## Building a release
 

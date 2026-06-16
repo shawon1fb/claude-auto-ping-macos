@@ -18,6 +18,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Accessibility/Automation grants persist across rebuilds.
 
 ### Changed
+- `uninstall-launch-agent.sh` is now a complete uninstaller: also resets the
+  app's macOS privacy permissions (TCC: Accessibility, Automation,
+  Notifications) and clears saved settings. New flags: `--keep-permissions`,
+  `--remove-app PATH`.
+- Reset time can be set directly from the menu bar popover (no Settings trip).
 - Permissions tab now auto-refreshes (on activation and while visible), so a
   grant made in System Settings is reflected without relaunching.
 - The Accessibility action button always opens the Accessibility pane (the

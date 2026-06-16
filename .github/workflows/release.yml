@@ -36,11 +36,17 @@ jobs:
       - name: Build Release (unsigned)
         run: ./Scripts/build-release.sh
 
-      - name: Package app
+      - name: Package DMG
         run: |
-          ditto -c -k --keepParent \
-            build/ClaudeAutoPingMacos.app \
-            build/ClaudeAutoPingMacos-${{ github.ref_name }}.zip
+          STAGE="build/dmg"
+          mkdir -p "${STAGE}"
+          cp -R build/ClaudeAutoPingMacos.app "${STAGE}/"
+          ln -s /Applications "${STAGE}/Applications"
+          hdiutil create \
+            -volname "Claude Auto Ping" \
+            -srcfolder "${STAGE}" \
+            -ov -format UDZO \
+            "build/ClaudeAutoPingMacos-${{ github.ref_name }}.dmg"
 
       # To ship signed, notarized builds, insert codesign + notarytool + stapler
       # steps here using repository secrets. See docs/release-process.md.
@@ -50,4 +56,4 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
-          files: build/ClaudeAutoPingMacos-${{ github.ref_name }}.zip
+          files: build/ClaudeAutoPingMacos-${{ github.ref_name }}.dmg

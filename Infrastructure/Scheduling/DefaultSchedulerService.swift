@@ -70,10 +70,7 @@ public final class DefaultSchedulerService: SchedulerService {
             return
         }
         if persistentState.nextScheduledDate == nil {
-            persistentState.nextScheduledDate = calculator.firstExecutionDate(
-                from: clock.now(),
-                interval: configuration.effectiveIntervalSeconds
-            )
+            persistentState.nextScheduledDate = computeNextScheduled(now: clock.now())
         }
         persist()
         startTicker()
@@ -87,10 +84,7 @@ public final class DefaultSchedulerService: SchedulerService {
         persistentState.isPaused = false
         persistentState.pausedDueToFailures = false
         persistentState.consecutiveFailures = 0
-        persistentState.nextScheduledDate = calculator.firstExecutionDate(
-            from: clock.now(),
-            interval: configuration.effectiveIntervalSeconds
-        )
+        persistentState.nextScheduledDate = computeNextScheduled(now: clock.now())
         persist()
         startTicker()
         recomputeStatus()
@@ -111,10 +105,7 @@ public final class DefaultSchedulerService: SchedulerService {
         persistentState.pausedDueToFailures = false
         persistentState.consecutiveFailures = 0
         if persistentState.nextScheduledDate == nil {
-            persistentState.nextScheduledDate = calculator.firstExecutionDate(
-                from: clock.now(),
-                interval: configuration.effectiveIntervalSeconds
-            )
+            persistentState.nextScheduledDate = computeNextScheduled(now: clock.now())
         }
         persist()
         startTicker()
@@ -135,14 +126,15 @@ public final class DefaultSchedulerService: SchedulerService {
     }
 
     public func updateConfiguration(_ configuration: SchedulerConfiguration) {
-        let intervalChanged = configuration.effectiveIntervalSeconds != self.configuration.effectiveIntervalSeconds
+        let old = self.configuration
+        let intervalChanged = configuration.effectiveIntervalSeconds != old.effectiveIntervalSeconds
+        let anchorChanged = configuration.anchorToResetTime != old.anchorToResetTime
+            || configuration.resetAnchorDate != old.resetAnchorDate
         self.configuration = configuration
-        // Recompute the next run if the interval changed while active.
-        if intervalChanged, self.configuration.isEnabled, !persistentState.isPaused {
-            persistentState.nextScheduledDate = calculator.firstExecutionDate(
-                from: clock.now(),
-                interval: configuration.effectiveIntervalSeconds
-            )
+        // Recompute the next run if the interval or reset anchor changed while
+        // active, so the schedule tracks the configured reset window.
+        if (intervalChanged || anchorChanged), self.configuration.isEnabled, !persistentState.isPaused {
+            persistentState.nextScheduledDate = computeNextScheduled(now: clock.now())
         }
         persist()
         recomputeStatus()
@@ -290,12 +282,27 @@ public final class DefaultSchedulerService: SchedulerService {
     }
 
     private func rescheduleNext(from now: Date) {
-        let anchor = persistentState.nextScheduledDate ?? now
-        persistentState.nextScheduledDate = calculator.nextAligned(
-            after: anchor,
-            now: now,
-            interval: configuration.effectiveIntervalSeconds
-        )
+        if configuration.anchorToResetTime, configuration.resetAnchorDate != nil {
+            // Stay locked to the reset-window cadence.
+            persistentState.nextScheduledDate = computeNextScheduled(now: now)
+        } else {
+            let anchor = persistentState.nextScheduledDate ?? now
+            persistentState.nextScheduledDate = calculator.nextAligned(
+                after: anchor,
+                now: now,
+                interval: configuration.effectiveIntervalSeconds
+            )
+        }
+    }
+
+    /// The next execution date, anchored to the configured reset time when set,
+    /// otherwise `now + interval`.
+    private func computeNextScheduled(now: Date) -> Date {
+        let interval = configuration.effectiveIntervalSeconds
+        if configuration.anchorToResetTime, let anchor = configuration.resetAnchorDate {
+            return calculator.nextAligned(after: anchor, now: now, interval: interval)
+        }
+        return calculator.firstExecutionDate(from: now, interval: interval)
     }
 
     // MARK: - Status & persistence

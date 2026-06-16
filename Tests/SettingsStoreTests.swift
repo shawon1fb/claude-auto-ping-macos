@@ -77,6 +77,22 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(config.version, SchedulerConfiguration.currentVersion)
         XCTAssertEqual(config.message, "older")
         XCTAssertTrue(config.isEnabled)
+        // Keys absent from the older payload fall back to their defaults rather
+        // than failing to decode.
+        XCTAssertTrue(config.anchorToResetTime)
+        XCTAssertNil(config.resetAnchorDate)
+    }
+
+    func testDecodingToleratesMissingKeys() {
+        // A minimal payload with only a couple of keys must still decode.
+        let json = #"{"message":"partial","intervalPreset":"twoHours"}"#
+        defaults.set(Data(json.utf8), forKey: "scheduler.configuration")
+        let store = UserDefaultsSettingsStore(defaults: defaults)
+        let config = store.loadConfiguration()
+        XCTAssertEqual(config.message, "partial")
+        XCTAssertEqual(config.intervalPreset, .twoHours)
+        XCTAssertEqual(config.logRetentionCount, 100) // default
+        XCTAssertTrue(config.anchorToResetTime) // default
     }
 
     func testResetClearsStoredData() {

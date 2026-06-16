@@ -39,6 +39,25 @@ struct GeneralSettingsView: View {
                 }
             }
 
+            Section("Claude reset window") {
+                Toggle("Send at Claude's reset time", isOn: $config.anchorToResetTime)
+                if config.anchorToResetTime {
+                    DatePicker(
+                        "Reset time",
+                        selection: resetTimeBinding,
+                        displayedComponents: .hourAndMinute
+                    )
+                    if config.resetAnchorDate == nil {
+                        Text("Set the time your Claude 5-hour usage limit resets. Until then, the schedule uses now + interval.")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                    Text("The next message is sent at this time, then every interval after — so each send lands at a 5-hour window reset.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section("Behavior") {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, newValue in
@@ -52,6 +71,25 @@ struct GeneralSettingsView: View {
         }
         .formStyle(.grouped)
         .onAppear { launchAtLogin = environment.isLaunchAtLoginEnabled }
+    }
+
+    /// Binds the optional reset anchor to a non-optional `DatePicker`, defaulting
+    /// to the next top of the hour when unset.
+    private var resetTimeBinding: Binding<Date> {
+        Binding(
+            get: { config.resetAnchorDate ?? Self.defaultResetTime() },
+            set: { config.resetAnchorDate = $0 }
+        )
+    }
+
+    private static func defaultResetTime() -> Date {
+        let calendar = Calendar.current
+        let nextHour = calendar.nextDate(
+            after: Date(),
+            matching: DateComponents(minute: 0),
+            matchingPolicy: .nextTime
+        )
+        return nextHour ?? Date()
     }
 }
 

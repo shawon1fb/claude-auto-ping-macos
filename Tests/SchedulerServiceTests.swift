@@ -210,6 +210,38 @@ final class SchedulerServiceTests: XCTestCase {
         XCTAssertEqual(scheduler.persistentState.nextScheduledDate, clock.now().addingTimeInterval(60 * 60))
     }
 
+    func testAnchoredScheduleUsesResetTime() async {
+        var config = SchedulerConfiguration()
+        let anchor = clock.now().addingTimeInterval(3600) // reset at now + 1h
+        config.anchorToResetTime = true
+        config.resetAnchorDate = anchor
+        let scheduler = makeScheduler(configuration: config)
+        scheduler.start()
+        // First send lands on the reset time, not now + interval.
+        XCTAssertEqual(scheduler.persistentState.nextScheduledDate, anchor)
+
+        clock.set(anchor)
+        await scheduler.evaluate()
+        XCTAssertEqual(automation.callCount, 1)
+        // After sending, the next send is one interval after the reset, staying
+        // locked to the reset cadence.
+        XCTAssertEqual(
+            scheduler.persistentState.nextScheduledDate,
+            anchor.addingTimeInterval(fiveHours)
+        )
+    }
+
+    func testUnanchoredScheduleUsesNowPlusInterval() {
+        var config = SchedulerConfiguration()
+        config.anchorToResetTime = false
+        let scheduler = makeScheduler(configuration: config)
+        scheduler.start()
+        XCTAssertEqual(
+            scheduler.persistentState.nextScheduledDate,
+            clock.now().addingTimeInterval(fiveHours)
+        )
+    }
+
     func testDryRunDoesNotRecordSuccessDate() async {
         let scheduler = makeScheduler()
         await scheduler.runDryTest()

@@ -7,6 +7,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- Reset-window scheduling (default on): set Claude's 5-hour reset time and the
+  next message lands at that time and every interval after. Anchored, tolerant
+  config decoding (config version 2).
 - App icon, generated programmatically via `Scripts/generate-app-icon.swift`.
 - Real Automation permission detection (`AEDeterminePermissionToAutomateTarget`)
   and a "Trigger Automation prompt (dry-run)" button in Permissions.

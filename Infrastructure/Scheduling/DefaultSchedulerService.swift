@@ -55,6 +55,13 @@ public final class DefaultSchedulerService: SchedulerService {
         recomputeStatus()
     }
 
+    /// Re-evaluates status against the current permission state. Call when the
+    /// app becomes active so a permission granted in System Settings is
+    /// reflected without relaunching.
+    public func refreshPermissionState() {
+        recomputeStatus()
+    }
+
     /// Resumes timing if the scheduler was already enabled before launch. Call
     /// once at startup after dependencies are wired.
     public func activate() {

@@ -98,9 +98,11 @@ actor MockLogStore: LogStore {
 @MainActor
 final class MockPermissionService: PermissionService {
     var status: PermissionStatus = .granted
+    var automation: PermissionStatus = .granted
     private(set) var promptCount = 0
 
     func accessibilityStatus() -> PermissionStatus { status }
+    func automationStatus() -> PermissionStatus { automation }
     func requestAccessibilityPrompt() { promptCount += 1 }
     func openAccessibilitySettings() {}
     func openAutomationSettings() {}

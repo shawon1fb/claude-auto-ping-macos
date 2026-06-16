@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import ApplicationServices
+import Carbon
 import OSLog
 
 /// `PermissionService` backed by the Accessibility trust APIs. It checks status
@@ -14,6 +15,36 @@ public final class AccessibilityPermissionService: PermissionService {
 
     public func accessibilityStatus() -> PermissionStatus {
         AXIsProcessTrusted() ? .granted : .denied
+    }
+
+    public func automationStatus() -> PermissionStatus {
+        // Probe permission to send Apple Events to System Events without
+        // prompting. macOS records a decision only after the first real attempt,
+        // so an undetermined result maps to `.unknown`.
+        let bundleID = "com.apple.systemevents"
+        var target = AEAddressDesc()
+        let createStatus = Data(bundleID.utf8).withUnsafeBytes { buffer in
+            AECreateDesc(typeApplicationBundleID, buffer.baseAddress, buffer.count, &target)
+        }
+        guard createStatus == noErr else { return .unknown }
+        defer { AEDisposeDesc(&target) }
+
+        let result = AEDeterminePermissionToAutomateTarget(
+            &target,
+            AEEventClass(kCoreEventClass),
+            AEEventID(kAEOpenApplication),
+            false
+        )
+        switch result {
+        case noErr:
+            return .granted
+        case OSStatus(errAEEventNotPermitted):
+            return .denied
+        default:
+            // errAEEventWouldRequireUserConsent (-1744) or procNotFound: not yet
+            // decided, so we cannot claim it is granted or denied.
+            return .unknown
+        }
     }
 
     public func requestAccessibilityPrompt() {

@@ -18,6 +18,7 @@ public final class AppEnvironment {
     @ObservationIgnored private let locator: ClaudeAppLocator
     @ObservationIgnored private let notifications: NotificationService
     @ObservationIgnored private let wakeObserver = WakeObserver()
+    @ObservationIgnored private var activationObserver: NSObjectProtocol?
     @ObservationIgnored private let logger = Logger(subsystem: AppInfo.subsystem, category: "AppEnvironment")
 
     /// Detected Claude app URL, refreshed by `detectClaude()`.
@@ -63,6 +64,18 @@ public final class AppEnvironment {
         wakeObserver.start { [weak self] in
             guard let self else { return }
             Task { await self.scheduler.handleWake() }
+        }
+
+        // Re-check permissions whenever the app becomes active, so a grant made
+        // in System Settings is reflected immediately (no relaunch needed).
+        activationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.refreshPermissions()
+            }
         }
 
         if scheduler.configuration.startAutomatically, !scheduler.configuration.isEnabled {
@@ -141,6 +154,17 @@ public final class AppEnvironment {
 
     public var accessibilityGranted: Bool {
         permission.accessibilityStatus() == .granted
+    }
+
+    public var automationStatus: PermissionStatus {
+        permission.automationStatus()
+    }
+
+    /// Re-checks permissions and Claude discovery, updating the scheduler's
+    /// status. Triggered on app activation and by the Permissions UI.
+    public func refreshPermissions() {
+        scheduler.refreshPermissionState()
+        detectClaude()
     }
 
     // MARK: - Logs maintenance

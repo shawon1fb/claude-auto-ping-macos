@@ -1,14 +1,21 @@
 import SwiftUI
 
 /// Permissions checklist with concise explanations and a relevant action for
-/// each item. Status is refreshed on appearance and after each action.
+/// each item. Status is refreshed on appearance, when the app becomes active,
+/// while the tab is visible, and after each action — so a grant made in System
+/// Settings is reflected without relaunching.
 struct PermissionSettingsView: View {
     @Binding var config: SchedulerConfiguration
     let environment: AppEnvironment
 
     @State private var claudeFound = false
     @State private var accessibilityGranted = false
+    @State private var automationStatus: PermissionStatus = .unknown
     @State private var launchAtLoginEnabled = false
+    @State private var isProbingAutomation = false
+
+    /// Lightweight poll so a live toggle in System Settings is picked up.
+    private let pollTimer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         Form {
@@ -28,9 +35,9 @@ struct PermissionSettingsView: View {
                     action: { environment.openAccessibilitySettings() }
                 )
                 ChecklistRow(
-                    title: "Automation permission available",
-                    explanation: "Allows controlling System Events. Approve the prompt on first run.",
-                    isSatisfied: nil,
+                    title: "Automation permission",
+                    explanation: automationExplanation,
+                    isSatisfied: automationSatisfied,
                     actionTitle: "Open Settings",
                     action: { environment.openAutomationSettings() }
                 )
@@ -42,12 +49,25 @@ struct PermissionSettingsView: View {
                     action: nil
                 )
             } footer: {
-                Text("Claude Auto Ping never prompts repeatedly. Use the buttons above to grant access in System Settings, then return here.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Claude Auto Ping never prompts repeatedly. Use the buttons above to grant access in System Settings, then return here — the status updates automatically.")
+                    Text("Automation can't be pre-granted: macOS only lists this app under Automation after it first tries to control another app. Run the dry-run below to trigger that one-time prompt, then approve System Events and Claude.")
+                    Text("If you rebuilt an unsigned development build and the toggle looks on but stays red, remove the old \"ClaudeAutoPingMacos\" entry in Accessibility and add the current app again: its code signature changed.")
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             Section {
+                Button {
+                    triggerAutomationPrompt()
+                } label: {
+                    HStack {
+                        if isProbingAutomation { ProgressView().controlSize(.small) }
+                        Text("Trigger Automation prompt (dry-run)")
+                    }
+                }
+                .help("Runs a dry-run that asks macOS for Automation access, adding the app to the Automation list.")
                 Button("Re-check permissions", action: refresh)
                 Button("Request Accessibility prompt") {
                     environment.requestAccessibility()
@@ -56,12 +76,51 @@ struct PermissionSettingsView: View {
         }
         .formStyle(.grouped)
         .onAppear(perform: refresh)
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refresh()
+        }
+        .onReceive(pollTimer) { _ in
+            refresh()
+        }
     }
 
     private func refresh() {
         claudeFound = environment.locateClaude(preferredPath: config.claudeAppPath) != nil
         accessibilityGranted = environment.accessibilityGranted
+        automationStatus = environment.automationStatus
         launchAtLoginEnabled = environment.isLaunchAtLoginEnabled
+        // Keep the menu bar status in sync with the live permission state.
+        environment.refreshPermissions()
+    }
+
+    private var automationSatisfied: Bool? {
+        switch automationStatus {
+        case .granted: return true
+        case .denied: return false
+        case .unknown: return nil
+        }
+    }
+
+    private var automationExplanation: String {
+        switch automationStatus {
+        case .granted:
+            return "Allows controlling System Events. Permission is granted."
+        case .denied:
+            return "Allows controlling System Events. Enable Claude Auto Ping in Automation settings."
+        case .unknown:
+            return "Allows controlling System Events. Approve the prompt on first run."
+        }
+    }
+
+    private func triggerAutomationPrompt() {
+        Task {
+            isProbingAutomation = true
+            // A dry-run performs the automation steps (which require Automation
+            // access) without pressing Return, prompting macOS as a side effect.
+            await environment.scheduler.runDryTest()
+            isProbingAutomation = false
+            refresh()
+        }
     }
 }
 

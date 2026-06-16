@@ -20,6 +20,9 @@ public protocol SchedulerService: AnyObject {
     /// Replaces the configuration, persisting it and rescheduling as needed.
     func updateConfiguration(_ configuration: SchedulerConfiguration)
 
+    /// Re-evaluates status against current external state such as permissions.
+    func refreshPermissionState()
+
     /// Runs the automation immediately as a manual test, bypassing the schedule
     /// but still honoring duplicate protection.
     func sendTestMessage() async

@@ -36,6 +36,36 @@ entitlement. It does enable the hardened runtime and the
 `com.apple.security.automation.apple-events` entitlement. See
 `App/ClaudeAutoPingMacos.entitlements`.
 
+## "I enabled the toggle but the app still shows red"
+
+macOS keys Accessibility/Automation grants to the app's **code signature**, not
+its path. Two consequences:
+
+- **The app re-checks automatically.** When you grant access in System Settings
+  and switch back, the Permissions tab updates within a couple of seconds (it
+  also re-checks on activation). No relaunch is needed for a matching build.
+- **Ad-hoc/unsigned rebuilds change identity.** The default `build-release.sh`
+  output is ad-hoc signed, so **every rebuild is a new identity**. A grant made
+  to a previous build does not apply, even though a stale `ClaudeAutoPingMacos`
+  entry may still appear toggled on. Remove the stale entry (select it, click
+  **–**), then add the current app again.
+
+### Make grants persist across rebuilds
+
+Sign with a **stable identity** so the code signature — and therefore the grant —
+stays the same between builds:
+
+```bash
+# A real "Apple Development" cert (from Xcode) or a Developer ID both work:
+CODESIGN_IDENTITY="Apple Development: You (TEAMID)" ./Scripts/build-release.sh
+
+# List available identities:
+security find-identity -v -p codesigning
+```
+
+After the first grant to a stably-signed build, subsequent rebuilds keep the
+permission.
+
 ## Revoked permissions
 
 If you later revoke Accessibility, scheduled runs fail safely: the app records a

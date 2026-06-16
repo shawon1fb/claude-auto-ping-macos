@@ -26,6 +26,9 @@ fi
 mkdir -p "${BUILD_DIR}"
 
 echo "Building Release..."
+# `clean build` (not just `build`) so actool always recompiles the asset
+# catalog. An incremental build over a stale ./build can skip actool and ship a
+# bundle missing Assets.car / the app icon.
 xcodebuild \
 	-project "${PROJECT}" \
 	-scheme "${SCHEME}" \
@@ -33,7 +36,7 @@ xcodebuild \
 	-derivedDataPath "${DERIVED_DATA}" \
 	-destination 'platform=macOS' \
 	CODE_SIGNING_ALLOWED=NO \
-	build
+	clean build
 
 APP_PATH="${DERIVED_DATA}/Build/Products/Release/ClaudeAutoPingMacos.app"
 if [[ ! -d "${APP_PATH}" ]]; then
@@ -41,8 +44,10 @@ if [[ ! -d "${APP_PATH}" ]]; then
 	exit 1
 fi
 
-cp -R "${APP_PATH}" "${BUILD_DIR}/"
 FINAL_APP="${BUILD_DIR}/ClaudeAutoPingMacos.app"
+# Remove any previous copy so we never merge into a stale bundle.
+rm -rf "${FINAL_APP}"
+cp -R "${APP_PATH}" "${FINAL_APP}"
 
 # Sign with a stable identity when provided. This matters for Accessibility /
 # Automation permissions: macOS TCC keys grants to the app's code signature, so

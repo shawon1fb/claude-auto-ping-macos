@@ -13,6 +13,7 @@ struct PermissionSettingsView: View {
     @State private var automationStatus: PermissionStatus = .unknown
     @State private var launchAtLoginEnabled = false
     @State private var isProbingAutomation = false
+    @State private var actionMessage: String?
 
     /// Lightweight poll so a live toggle in System Settings is picked up.
     private let pollTimer = Timer.publish(every: 1.5, on: .main, in: .common).autoconnect()
@@ -69,8 +70,15 @@ struct PermissionSettingsView: View {
                 }
                 .help("Runs a dry-run that asks macOS for Automation access, adding the app to the Automation list.")
                 Button("Re-check permissions", action: refresh)
-                Button("Request Accessibility prompt") {
-                    environment.requestAccessibility()
+                Button("Open Accessibility settings") {
+                    actionMessage = environment.requestAccessibility()
+                }
+                .help("Opens the Accessibility pane (and shows the system prompt the first time).")
+                if let actionMessage {
+                    Text(actionMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }

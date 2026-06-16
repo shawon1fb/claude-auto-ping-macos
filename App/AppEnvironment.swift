@@ -140,8 +140,18 @@ public final class AppEnvironment {
 
     // MARK: - Permissions
 
-    public func requestAccessibility() {
+    /// Asks for Accessibility access. Returns a short, user-facing result so the
+    /// UI can give feedback. The system prompt only appears the first time macOS
+    /// encounters the app; once it is already listed, the prompt is suppressed,
+    /// so we always open the Accessibility pane as a reliable fallback.
+    @discardableResult
+    public func requestAccessibility() -> String {
+        if accessibilityGranted {
+            return "Accessibility is already granted."
+        }
         permission.requestAccessibilityPrompt()
+        permission.openAccessibilitySettings()
+        return "Opened Accessibility settings. Enable Claude Auto Ping, then return here."
     }
 
     public func openAccessibilitySettings() {

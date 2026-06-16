@@ -118,13 +118,24 @@ open the right panes, then return to the app. Full details:
 ## Usage
 
 1. Open the app; its icon appears in the menu bar.
-2. Open **Settings** and set your message and interval.
-3. Grant Accessibility and Automation permission (Settings → Permissions).
-4. Click **Send Test Message** to confirm it works.
+2. Open **Settings → General** and set your message and interval.
+3. Open **Settings → Permissions**:
+   - **Open Accessibility settings** → enable Claude Auto Ping. The checklist
+     turns green on its own within a couple of seconds (it re-checks on app
+     activation and while the tab is visible — no relaunch needed).
+   - **Trigger Automation prompt (dry-run)** → this runs a no-send dry-run that
+     makes macOS show the one-time Automation consent dialog and adds the app to
+     the Automation list. Approve **System Events** and **Claude**.
+4. Back on **General/Automation**, click **Send Test Message** to confirm it
+   works.
 5. Click **Start Scheduler**.
 
 The menu bar icon reflects the state: running, paused, error, or permission
 required.
+
+> **Why the Automation step needs a dry-run:** macOS does not let an app be
+> pre-added to the Automation list. An app only appears there *after* it first
+> tries to control another app, which is exactly what the dry-run does.
 
 ## Architecture summary
 
@@ -146,18 +157,62 @@ periodic ticks are injected, so the scheduler is deterministic in tests. More:
 Common issues (Claude not found, nothing pastes, permission revoked, UI changes)
 are covered in [docs/troubleshooting.md](docs/troubleshooting.md).
 
+## Reset to a clean state (cold start)
+
+To return the app to a clean first-run state — quit it, reset its macOS privacy
+permissions (Accessibility, Automation, Notifications), and clear its saved
+settings, state, and logs:
+
+```bash
+./Scripts/cold-start-reset.sh
+# then reopen the app
+open build/ClaudeAutoPingMacos.app
+```
+
+This runs in user space (no `sudo`) and does not delete the app bundle. It is
+handy after rebuilding or when permissions get into a confusing state.
+
 ## Uninstallation
 
 - **App:** Settings → Advanced → "Uninstall background components" (disables login
-  item and stops the scheduler), then drag the app to the Trash.
+  item and stops the scheduler), then drag the app to the Trash. For a full
+  privacy/state wipe, run `./Scripts/cold-start-reset.sh` first.
 - **Standalone:** `./Scripts/uninstall-launch-agent.sh` (add `--remove-logs` to
   also delete logs).
 
 ## Building a release
 
-`./Scripts/build-release.sh` produces an **unsigned** `.app`. Adding Developer ID
-signing and notarization is documented in
-[docs/release-process.md](docs/release-process.md).
+`./Scripts/build-release.sh` produces an **ad-hoc signed** `.app` by default.
+
+### Stable signing (recommended for development)
+
+macOS keys Accessibility/Automation grants to the app's **code signature**, so an
+ad-hoc build gets a new identity on every rebuild and must be re-granted. Sign
+with a stable identity to keep grants across rebuilds:
+
+```bash
+# List available signing identities
+security find-identity -v -p codesigning
+
+# Build signed with a stable identity (Apple Development or Developer ID)
+CODESIGN_IDENTITY="Apple Development: You (TEAMID)" ./Scripts/build-release.sh
+```
+
+Adding Developer ID signing and notarization for distribution is documented in
+[docs/release-process.md](docs/release-process.md). Permission details:
+[docs/permissions.md](docs/permissions.md).
+
+## App icon
+
+The icon is generated programmatically (no external tools) and can be
+regenerated after tweaking color or glyph:
+
+```bash
+swift Scripts/generate-app-icon.swift
+```
+
+It writes every size into `Resources/Assets.xcassets/AppIcon.appiconset` and
+updates `Contents.json`.
 
 ## Contributing
 

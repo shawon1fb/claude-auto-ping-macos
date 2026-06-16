@@ -7,7 +7,18 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
-- Nothing yet.
+- App icon, generated programmatically via `Scripts/generate-app-icon.swift`.
+- Real Automation permission detection (`AEDeterminePermissionToAutomateTarget`)
+  and a "Trigger Automation prompt (dry-run)" button in Permissions.
+- `Scripts/cold-start-reset.sh` to reset TCC permissions, settings, and logs.
+- `CODESIGN_IDENTITY` support in `build-release.sh` for stable signing so
+  Accessibility/Automation grants persist across rebuilds.
+
+### Changed
+- Permissions tab now auto-refreshes (on activation and while visible), so a
+  grant made in System Settings is reflected without relaunching.
+- The Accessibility action button always opens the Accessibility pane (the
+  system prompt is suppressed after first encounter) and shows feedback.
 
 ## [0.1.0] - 2026-06-16
 

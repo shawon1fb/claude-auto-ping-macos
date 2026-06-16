@@ -1,9 +1,9 @@
 name: Release
 
-# Template release workflow. Builds an unsigned app on tag push and attaches it to
-# the GitHub Release. Signing and notarization are intentionally left out so this
-# runs without secrets; see docs/release-process.md to add Developer ID signing,
-# notarization, and signed assets.
+# Builds a Release app on tag push, packages it as a DMG, and attaches it to a
+# draft GitHub Release. When Developer ID signing + notarization secrets are
+# present the DMG is signed, notarized, and stapled; otherwise an unsigned DMG
+# is produced so forks and PRs still build. See docs/release-process.md.
 
 on:
   push:
@@ -17,6 +17,10 @@ jobs:
   release:
     name: Build & attach assets
     runs-on: macos-latest
+    env:
+      # 'true' only when the signing certificate secret is configured.
+      SIGN: ${{ secrets.DEVELOPER_ID_CERT_P12 != '' && 'true' || 'false' }}
+      DMG: build/ClaudeAutoPingMacos-${{ github.ref_name }}.dmg
 
     steps:
       - name: Checkout
@@ -33,7 +37,29 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Build Release (unsigned)
+      - name: Import Developer ID certificate
+        if: env.SIGN == 'true'
+        env:
+          CERT_P12: ${{ secrets.DEVELOPER_ID_CERT_P12 }}
+          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_CERT_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain"
+          KEYCHAIN_PWD="$(openssl rand -base64 24)"
+          echo "$CERT_P12" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PWD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PWD" "$KEYCHAIN"
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      - name: Build Release
+        env:
+          # Empty on unsigned builds -> build-release.sh falls back to ad-hoc.
+          CODESIGN_IDENTITY: ${{ secrets.CODESIGN_IDENTITY }}
         run: ./Scripts/build-release.sh
 
       - name: Package DMG
@@ -46,14 +72,27 @@ jobs:
             -volname "Claude Auto Ping" \
             -srcfolder "${STAGE}" \
             -ov -format UDZO \
-            "build/ClaudeAutoPingMacos-${{ github.ref_name }}.dmg"
+            "${DMG}"
 
-      # To ship signed, notarized builds, insert codesign + notarytool + stapler
-      # steps here using repository secrets. See docs/release-process.md.
+      - name: Notarize and staple DMG
+        if: env.SIGN == 'true'
+        env:
+          NOTARY_KEY_P8: ${{ secrets.NOTARY_KEY_P8 }}
+          NOTARY_KEY_ID: ${{ secrets.NOTARY_KEY_ID }}
+          NOTARY_ISSUER_ID: ${{ secrets.NOTARY_ISSUER_ID }}
+        run: |
+          echo "$NOTARY_KEY_P8" | base64 --decode > "$RUNNER_TEMP/notary.p8"
+          xcrun notarytool submit "${DMG}" \
+            --key "$RUNNER_TEMP/notary.p8" \
+            --key-id "$NOTARY_KEY_ID" \
+            --issuer "$NOTARY_ISSUER_ID" \
+            --wait
+          xcrun stapler staple "${DMG}"
+          rm -f "$RUNNER_TEMP/notary.p8"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
           generate_release_notes: true
-          files: build/ClaudeAutoPingMacos-${{ github.ref_name }}.dmg
+          files: ${{ env.DMG }}
